@@ -1259,7 +1259,8 @@ onMounted(() => {
           v-else-if="isPdfFile && pdfUrl"
           :url="pdfUrl"
           :auth-token="authStore.token || undefined"
-          :class="{ 'pdf-viewer--maximized': isPreviewMaximized }"
+          :fullscreen="isPreviewMaximized"
+          @toggle-fullscreen="isPreviewMaximized = !isPreviewMaximized"
         />
         
         <template v-else-if="isMarkdownFile">
@@ -1567,10 +1568,6 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   margin-bottom: 12px;
-}
-
-.pdf-viewer--maximized {
-  height: calc(100vh - 100px) !important;
 }
 
 .preview-image {

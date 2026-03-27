@@ -12,18 +12,18 @@ import VuePdfEmbed from 'vue-pdf-embed'
 const props = defineProps<{
   url: string
   authToken?: string
+  fullscreen?: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'fullscreen'): void
+  (e: 'toggle-fullscreen'): void
 }>()
 
 const loading = ref(true)
 const error = ref('')
 const currentPage = ref(1)
 const totalPages = ref(0)
-const scale = ref(1.0)
-const isFullscreen = ref(false)
+const scale = ref(1.5)
 const pdfRef = ref<any>(null)
 
 const pdfSource = computed(() => {
@@ -81,12 +81,11 @@ function zoomOut() {
 }
 
 function resetZoom() {
-  scale.value = 1.0
+  scale.value = 1.5
 }
 
 function toggleFullscreen() {
-  isFullscreen.value = !isFullscreen.value
-  emit('fullscreen')
+  emit('toggle-fullscreen')
 }
 
 watch(() => props.url, () => {
@@ -98,7 +97,7 @@ watch(() => props.url, () => {
 </script>
 
 <template>
-  <div class="pdf-viewer" :class="{ 'pdf-viewer--fullscreen': isFullscreen }">
+  <div class="pdf-viewer" :class="{ 'pdf-viewer--fullscreen': fullscreen }">
     <div class="pdf-toolbar">
       <NSpace :size="8" align="center">
         <NButton size="tiny" quaternary :disabled="currentPage <= 1" @click="prevPage">
@@ -120,11 +119,14 @@ watch(() => props.url, () => {
         <NButton size="tiny" quaternary @click="zoomIn" :disabled="scale >= 3">
           +
         </NButton>
+        <NButton size="tiny" quaternary @click="resetZoom" title="重置缩放">
+          重置
+        </NButton>
         
         <div class="toolbar-divider"></div>
         
-        <NButton size="tiny" quaternary @click="toggleFullscreen">
-          <template #icon><NIcon :component="isFullscreen ? ContractOutline : ExpandOutline" /></template>
+        <NButton size="tiny" quaternary @click="toggleFullscreen" :title="fullscreen ? '退出全屏' : '全屏'">
+          <template #icon><NIcon :component="fullscreen ? ContractOutline : ExpandOutline" /></template>
         </NButton>
       </NSpace>
     </div>
@@ -134,17 +136,19 @@ watch(() => props.url, () => {
         <div v-if="error" class="pdf-error">
           <NText type="error">{{ error }}</NText>
         </div>
-        <div v-else class="pdf-pages" :style="{ transform: `scale(${scale})`, transformOrigin: 'top center' }">
-          <VuePdfEmbed
-            ref="pdfRef"
-            :source="pdfSource"
-            :page="currentPage"
-            class="pdf-embed"
-            @rendered="handleRendered"
-            @loading-failed="handleError"
-            @rendering-failed="handleError"
-            @loading="handleLoading"
-          />
+        <div v-else class="pdf-pages">
+          <div class="pdf-page-wrapper" :style="{ transform: `scale(${scale})`, transformOrigin: 'top center' }">
+            <VuePdfEmbed
+              ref="pdfRef"
+              :source="pdfSource"
+              :page="currentPage"
+              class="pdf-embed"
+              @rendered="handleRendered"
+              @loading-failed="handleError"
+              @rendering-failed="handleError"
+              @loading="handleLoading"
+            />
+          </div>
         </div>
       </NSpin>
     </div>
@@ -156,13 +160,22 @@ watch(() => props.url, () => {
   display: flex;
   flex-direction: column;
   height: 70vh;
+  min-height: 400px;
   background: var(--bg-secondary);
   border-radius: var(--radius);
   overflow: hidden;
 }
 
 .pdf-viewer--fullscreen {
-  height: calc(100vh - 80px);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100vh;
+  min-height: 100vh;
+  z-index: 9999;
+  border-radius: 0;
 }
 
 .pdf-toolbar {
@@ -186,21 +199,33 @@ watch(() => props.url, () => {
   flex: 1;
   overflow: auto;
   padding: 16px;
+  display: flex;
+  flex-direction: column;
 }
 
 .pdf-pages {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
+  min-height: 100%;
+}
+
+.pdf-page-wrapper {
+  width: 100%;
+  max-width: 900px;
 }
 
 .pdf-embed {
+  width: 100%;
   background: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border-radius: 2px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
 }
 
-.pdf-embed canvas {
+.pdf-embed :deep(canvas) {
+  width: 100% !important;
+  height: auto !important;
   display: block;
 }
 
